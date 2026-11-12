@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pixel Folders</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Press+Start+2P&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #2b2140;
+      --ink: #1a1326;
+      --paper: #fff6e0;
+      --shadow: #00000055;
+      --px: 4px; /* 一個「像素」的大小 */
+
+      /* 每個資料夾的顏色 */
+      --c1: #ffcc4d;
+      --c2: #6fd3a8;
+      --c3: #7fb2ff;
+      --c4: #ff8fa3;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background-color: var(--bg);
+      /* 像素格線背景 */
+      background-image:
+        linear-gradient(#ffffff08 1px, transparent 1px),
+        linear-gradient(90deg, #ffffff08 1px, transparent 1px);
+      background-size: 16px 16px;
+      font-family: "DotGothic16", monospace;
+      color: var(--ink);
+      display: flex;
+      justify-content: center;
+      padding: 48px 16px;
+      image-rendering: pixelated;
+    }
+
+    .wrap {
+      width: 100%;
+      max-width: 860px;
+    }
+
+    h1 {
+      font-family: "Press Start 2P", monospace;
+      font-size: 20px;
+      color: var(--paper);
+      text-shadow: var(--px) var(--px) 0 var(--ink);
+      margin: 0 0 32px;
+      letter-spacing: 2px;
+    }
+
+    /* ---------- 標籤列 ---------- */
+    .tabs {
+      display: flex;
+      gap: 0;
+      padding-left: 12px;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      /* 不設 z-index：讓未選取標籤（z1）藏在資料夾（z2）後面、選取的（z3）蓋在上面 */
+    }
+
+    .tab {
+      --c: var(--c1);
+      display: block;
+      padding: 12px 22px 10px;
+      font-family: inherit;
+      font-size: 16px;
+      color: var(--ink);
+      background: var(--c);
+      border: none;
+      cursor: pointer;
+      filter: brightness(0.78) saturate(0.85); /* 未選取的標籤偏暗 */
+      transition: filter 0.08s steps(2);
+      box-shadow: inset 0 var(--px) 0 0 #ffffff66;
+      /* 階梯狀圓角 */
+      clip-path: polygon(
+        0 var(--px), var(--px) var(--px), var(--px) 0,
+        calc(100% - var(--px)) 0, calc(100% - var(--px)) var(--px), 100% var(--px),
+        100% 100%, 0 100%
+      );
+    }
+    /* 外層深色殼當作像素外框（clip-path 會切掉 box-shadow，所以用一層包住） */
+    .tab-shell {
+      position: relative;
+      flex: 0 0 auto;
+      margin-right: -6px;           /* 讓標籤互相疊一點，像真的資料夾 */
+      padding: var(--px) var(--px) 0;
+      background: var(--ink);
+      clip-path: polygon(
+        0 calc(var(--px) * 2), var(--px) calc(var(--px) * 2), var(--px) var(--px),
+        calc(var(--px) * 2) var(--px), calc(var(--px) * 2) 0,
+        calc(100% - var(--px) * 2) 0, calc(100% - var(--px) * 2) var(--px),
+        calc(100% - var(--px)) var(--px), calc(100% - var(--px)) calc(var(--px) * 2),
+        100% calc(var(--px) * 2), 100% 100%, 0 100%
+      );
+      transform: translateY(8px);   /* 未選取的標籤往下沉 */
+      transition: transform 0.08s steps(2);
+      z-index: 1;
+    }
+    .tab-shell:hover { transform: translateY(4px); }
+    .tab-shell.active {
+      transform: translateY(0);
+      margin-bottom: calc(var(--px) * -1); /* 往下蓋住資料夾上框，與資料夾連成一體 */
+      z-index: 3;
+    }
+    .tab-shell.active .tab {
+      filter: none;
+      padding-bottom: 14px;
+    }
+    @media (max-width: 520px) {
+      .tab { padding: 10px 12px 8px; font-size: 14px; }
+      .tab .icon { display: none; }
+    }
+    .tab:focus-visible {
+      outline: var(--px) dashed var(--ink);
+      outline-offset: -10px;
+    }
+
+    .tab .icon {
+      display: inline-block;
+      width: 16px;
+      height: 12px;
+      margin-right: 8px;
+      vertical-align: -1px;
+      background: var(--ink);
+      clip-path: polygon(0 0, 40% 0, 50% 20%, 100% 20%, 100% 100%, 0 100%);
+    }
+
+    /* ---------- 資料夾本體 ---------- */
+    .folder {
+      position: relative;
+      z-index: 2;
+      background: var(--active-c, var(--c1));
+      padding: calc(var(--px) * 3);
+      /* 外框 + 投影 */
+      box-shadow:
+        0 0 0 var(--px) var(--ink),
+        calc(var(--px) * 3) calc(var(--px) * 3) 0 var(--px) var(--shadow);
+    }
+
+    .panel {
+      background: var(--paper);
+      min-height: 360px;
+      padding: 28px;
+      box-shadow:
+        inset var(--px) var(--px) 0 0 #00000018,
+        0 0 0 var(--px) var(--ink);
+      /* 橫線紙 */
+      background-image: repeating-linear-gradient(
+        to bottom, transparent 0, transparent 31px, #1a132614 31px, #1a132614 32px
+      );
+      line-height: 32px;
+    }
+    .panel[hidden] { display: none; }
+    /* 只讓紙上的內容滑入，紙本身保持不透明，避免露出底色而閃爍 */
+    .panel.enter > * { animation: slide-in 0.15s steps(3) both; }
+    @keyframes slide-in {
+      from { opacity: 0.4; transform: translateY(4px); }
+      to   { opacity: 1; transform: none; }
+    }
+
+    .panel h2 {
+      font-family: "Press Start 2P", "DotGothic16", monospace;
+      font-size: 16px;
+      margin: 0 0 16px;
+      line-height: 32px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+    .file {
+      background: #fff;
+      padding: 12px;
+      line-height: 1.5;
+      box-shadow:
+        0 0 0 var(--px) var(--ink),
+        var(--px) var(--px) 0 var(--px) var(--shadow);
+      cursor: pointer;
+      transition: transform 0.06s steps(2);
+    }
+    .file:hover { transform: translate(-2px, -2px); }
+    .file:active { transform: translate(2px, 2px); }
+    .file b { display: block; font-weight: normal; font-size: 15px; }
+    .file small { opacity: 0.6; }
+
+    .status {
+      margin-top: 28px;
+      color: var(--paper);
+      font-size: 14px;
+      opacity: 0.8;
+    }
+    .status kbd {
+      font-family: "Press Start 2P", monospace;
+      font-size: 10px;
+      padding: 2px 6px;
+      background: var(--paper);
+      color: var(--ink);
+      box-shadow: 0 2px 0 var(--ink);
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <h1>MY FOLDERS</h1>
+
+    <div class="tabs" role="tablist" aria-label="資料夾">
+      <div class="tab-shell active" style="--c: var(--c1)">
+        <button class="tab" role="tab" id="tab-1" aria-controls="panel-1" aria-selected="true" style="--c: var(--c1)">
+          <span class="icon"></span>我的文件
+        </button>
+      </div>
+      <div class="tab-shell" style="--c: var(--c2)">
+        <button class="tab" role="tab" id="tab-2" aria-controls="panel-2" aria-selected="false" tabindex="-1" style="--c: var(--c2)">
+          <span class="icon"></span>專案
+        </button>
+      </div>
+      <div class="tab-shell" style="--c: var(--c3)">
+        <button class="tab" role="tab" id="tab-3" aria-controls="panel-3" aria-selected="false" tabindex="-1" style="--c: var(--c3)">
+          <span class="icon"></span>圖片
+        </button>
+      </div>
+      <div class="tab-shell" style="--c: var(--c4)">
+        <button class="tab" role="tab" id="tab-4" aria-controls="panel-4" aria-selected="false" tabindex="-1" style="--c: var(--c4)">
+          <span class="icon"></span>筆記
+        </button>
+      </div>
+    </div>
+
+    <div class="folder" id="folder">
+      <section class="panel" role="tabpanel" id="panel-1" aria-labelledby="tab-1">
+        <h2>DOCUMENTS</h2>
+        <p>這裡是「我的文件」資料夾，點上方標籤可以切換到其他資料夾。</p>
+        <div class="grid">
+          <div class="file"><b>履歷.txt</b><small>2 KB</small></div>
+          <div class="file"><b>報告草稿.doc</b><small>48 KB</small></div>
+          <div class="file"><b>待辦清單.md</b><small>1 KB</small></div>
+        </div>
+      </section>
+
+      <section class="panel" role="tabpanel" id="panel-2" aria-labelledby="tab-2" hidden>
+        <h2>PROJECTS</h2>
+        <p>進行中的專案都放在這裡。</p>
+        <div class="grid">
+          <div class="file"><b>2026-TEST-01</b><small>進行中</small></div>
+          <div class="file"><b>像素小遊戲</b><small>構想中</small></div>
+        </div>
+      </section>
+
+      <section class="panel" role="tabpanel" id="panel-3" aria-labelledby="tab-3" hidden>
+        <h2>IMAGES</h2>
+        <p>圖片收藏區。</p>
+        <div class="grid">
+          <div class="file"><b>sprite_01.png</b><small>16×16</small></div>
+          <div class="file"><b>tileset.png</b><small>256×256</small></div>
+          <div class="file"><b>avatar.png</b><small>32×32</small></div>
+          <div class="file"><b>bg_sky.png</b><small>320×180</small></div>
+        </div>
+      </section>
+
+      <section class="panel" role="tabpanel" id="panel-4" aria-labelledby="tab-4" hidden>
+        <h2>NOTES</h2>
+        <p>隨手記下的想法 ✎</p>
+        <p>・標籤要有資料夾的感覺<br />・顏色可以再調整<br />・之後加上更多內容</p>
+      </section>
+    </div>
+
+    <p class="status">提示：也可以用 <kbd>←</kbd> <kbd>→</kbd> 切換資料夾</p>
+  </main>
+
+  <script>
+    const tabs = [...document.querySelectorAll('.tab')];
+    const folder = document.getElementById('folder');
+
+    function select(tab) {
+      tabs.forEach(t => {
+        const on = t === tab;
+        t.setAttribute('aria-selected', on);
+        t.tabIndex = on ? 0 : -1;
+        t.parentElement.classList.toggle('active', on);
+        const panel = document.getElementById(t.getAttribute('aria-controls'));
+        panel.hidden = !on;
+        if (on) {
+          panel.classList.remove('enter');
+          void panel.offsetWidth; // 重新觸發動畫
+          panel.classList.add('enter');
+        }
+      });
+      folder.style.setProperty('--active-c', tab.style.getPropertyValue('--c'));
+    }
+
+    tabs.forEach((tab, i) => {
+      tab.addEventListener('click', () => select(tab));
+      tab.addEventListener('keydown', e => {
+        const dir = { ArrowRight: 1, ArrowLeft: -1 }[e.key];
+        if (!dir) return;
+        const next = tabs[(i + dir + tabs.length) % tabs.length];
+        select(next);
+        next.focus();
+      });
+    });
+
+    select(tabs[0]);
+  </script>
+</body>
+</html>
